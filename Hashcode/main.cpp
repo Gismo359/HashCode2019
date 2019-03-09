@@ -30,6 +30,109 @@ using Pair = std::pair<FirstType, SecondType>;
 using IntSet = std::unordered_set<int>;
 using TagSet = std::unordered_set<std::string>;
 
+template <typename Type>
+struct Array2d
+{
+    int width;
+    int height;
+
+    Vector<Type> data;
+
+    struct Row
+    {
+        Type *begin;
+        Type *end;
+
+        Row(Type *begin, Type *end) :
+            begin(begin),
+            end(end)
+        {
+
+        }
+
+        Type &operator [](int idx)
+        {
+            Type *it = begin + idx;
+            if (it < begin | it > end)
+            {
+                throw std::runtime_error("Column index " + std::to_string(idx) + " out of range");
+            }
+            return *it;
+        }
+    };
+
+    struct Iterator //: std::iterator<std::bidirectional_iterator_tag, Row>
+    {
+        using iterator_category = std::bidirectional_iterator_tag;
+        using difference_type = int;
+        using value_type = int;
+        using pointer = value_type * ;
+        using reference = value_type & ;
+
+        Array2d<Type> *container;
+        int idx;
+
+        Iterator() = default;
+        Iterator(Array2d<Type> *container, int idx) :
+            container(container),
+            idx(idx)
+        {
+
+        }
+
+        Row operator *()
+        {
+            return (*container)[idx];
+        }
+
+        Iterator &operator++()
+        {
+            idx++;
+            return *this;
+        }
+
+        Iterator &operator--()
+        {
+            idx--;
+            return *this;
+        }
+
+        bool operator != (Iterator const &other)
+        {
+            return idx != other.idx;
+        }
+    };
+
+    Array2d(int width, int height) :
+        width(width),
+        height(height)
+    {
+        data.resize(width * height);
+    }
+
+    Row operator [](int idx)
+    {
+        if (idx < 0 || idx >= height)
+        {
+            throw std::runtime_error("Row index " + std::to_string(idx) + " out of range");
+        }
+        return Row(
+            data.data() + idx * width,
+            data.data() + idx * width + width
+        );
+    }
+
+    Iterator begin()
+    {
+        return Iterator(this, 0);
+    }
+
+    Iterator end()
+    {
+        return Iterator(this, height);
+    }
+};
+
 struct Photo
 {
     IntSet tags;
@@ -203,15 +306,6 @@ SlideArray SortSlides(SlideArray const &slides)
 
         if (output_indices.size() > 2)
         {
-            //int s1 = Score(
-            //    slides[output_indices[output_indices.size() - 2]],
-            //    slides[output_indices[output_indices.size() - 1]]
-            //);
-            //int s2 = Score(
-            //    slides[output_indices[output_indices.size() - 1]],
-            //    slides[output_indices[0]]
-            //);
-
             while (Score(
                 slides[output_indices[output_indices.size() - 2]],
                 slides[output_indices[output_indices.size() - 1]]
@@ -240,110 +334,7 @@ SlideArray SortSlides(SlideArray const &slides)
     return output;
 }
 
-template <typename Type>
-struct Array2d
-{
-    int width;
-    int height;
-
-    Vector<Type> data;
-
-    struct Row
-    {
-        Type *begin;
-        Type *end;
-
-        Row(Type *begin, Type *end) :
-            begin(begin),
-            end(end)
-        {
-
-        }
-
-        Type &operator [](int idx)
-        {
-            Type *it = begin + idx;
-            if (it < begin | it > end)
-            {
-                throw std::runtime_error("Column index " + std::to_string(idx) + " out of range");
-            }
-            return *it;
-        }
-    };
-
-    struct Iterator //: std::iterator<std::bidirectional_iterator_tag, Row>
-    {
-        using iterator_category = std::bidirectional_iterator_tag;
-        using difference_type = int;
-        using value_type = int;
-        using pointer = value_type * ;
-        using reference = value_type & ;
-
-        Array2d<Type> *container;
-        int idx;
-
-        Iterator() = default;
-        Iterator(Array2d<Type> *container, int idx) :
-            container(container),
-            idx(idx)
-        {
-
-        }
-
-        Row operator *()
-        {
-            return (*container)[idx];
-        }
-
-        Iterator &operator++()
-        {
-            idx++;
-            return *this;
-        }
-
-        Iterator &operator--()
-        {
-            idx--;
-            return *this;
-        }
-
-        bool operator != (Iterator const &other)
-        {
-            return idx != other.idx;
-        }
-    };
-
-    Array2d(int width, int height) :
-        width(width),
-        height(height)
-    {
-        data.resize(width * height);
-    }
-
-    Row operator [](int idx)
-    {
-        if (idx < 0 || idx >= height)
-        {
-            throw std::runtime_error("Row index " + std::to_string(idx) + " out of range");
-        }
-        return Row(
-            data.data() + idx * width,
-            data.data() + idx * width + width
-        );
-    }
-
-    Iterator begin()
-    {
-        return Iterator(this, 0);
-    }
-
-    Iterator end()
-    {
-        return Iterator(this, height);
-    }
-};
-
-void SolveProblem(std::filesystem::path filename, int nthreads)
+void SolveProblem(std::filesystem::path filename, int nthreads = 1)
 {
     PhotoArray photos;
 
@@ -397,45 +388,39 @@ void SolveProblem(std::filesystem::path filename, int nthreads)
     }
     );
 
-    //for (int slide_idx = 0; slide_idx < slides.size() - 1; slide_idx += 2)
+    //Array2d<int> order(slides.size() - 1, slides.size());
+    //Array2d<int> scores(slides.size(), slides.size());
+    //std::for_each(
+    //    std::execution::par_unseq,
+    //    std::begin(order),
+    //    std::end(order),
+    //    [&](Array2d<int>::Row row)
     //{
-    //    std::swap(slides[slide_idx], slides[slides.size() - slide_idx - 1]);
-    //}
+    //    int row_idx = std::distance(order.data.data(), row.begin) / order.width;
 
+    //    int *it = row.begin;
 
-    Array2d<int> order(slides.size() - 1, slides.size());
-    Array2d<int> scores(slides.size(), slides.size());
-    std::for_each(
-        std::execution::par_unseq,
-        std::begin(order),
-        std::end(order),
-        [&](Array2d<int>::Row row)
-    {
-        int row_idx = std::distance(order.data.data(), row.begin) / order.width;
+    //    Slide const &slide = slides[row_idx];
 
-        int *it = row.begin;
+    //    int slide_idx = slides.size();
+    //    while (slide_idx--)
+    //    {
+    //        if (slide_idx != row_idx)
+    //        {
+    //            *it++ = slide_idx;
+    //            scores[row_idx][slide_idx] = Score(slide, slides[slide_idx]);
+    //        }
+    //        else
+    //        {
+    //            scores[row_idx][slide_idx] = 0;
+    //        }
+    //    }
 
-        Slide const &slide = slides[row_idx];
-
-        int slide_idx = slides.size();
-        while (slide_idx--)
-        {
-            if (slide_idx != row_idx)
-            {
-                *it++ = slide_idx;
-                scores[row_idx][slide_idx] = Score(slide, slides[slide_idx]);
-            }
-            else
-            {
-                scores[row_idx][slide_idx] = 0;
-            }
-        }
-
-        std::sort(row.begin, row.end, [row_idx, &scores](int lhs, int rhs)
-        {
-            return scores[row_idx][lhs] < scores[row_idx][lhs];
-        });
-    });
+    //    std::sort(row.begin, row.end, [row_idx, &scores](int lhs, int rhs)
+    //    {
+    //        return scores[row_idx][lhs] < scores[row_idx][lhs];
+    //    });
+    //});
 
     Vector<Pair<int, SlideArray>> splits;
 
@@ -494,12 +479,40 @@ void SolveProblem(std::filesystem::path filename, int nthreads)
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     //SolveProblem("b_lovely_landscapes.txt", 1);
     //SolveProblem("e_shiny_selfies.txt", 1);
     //SolveProblem("d_pet_pictures.txt", 1);
-    SolveProblem("c_memorable_moments.txt", 1);
+    //SolveProblem("c_memorable_moments.txt", 1);
+
+    for (int idx = 1; idx < argc; idx++)
+    {
+        switch (argv[idx][0])
+        {
+        case 'a':
+        case 'A':
+            SolveProblem("a_example.txt");
+            break;
+        case 'b':
+        case 'B':
+            SolveProblem("b_lovely_landscapes.txt");
+            break;
+        case 'c':
+        case 'C':
+            SolveProblem("c_memorable_moments.txt");
+            break;
+        case 'd':
+        case 'D':
+            SolveProblem("d_pet_pictures.txt");
+            break;
+        case 'e':
+        case 'E':
+            SolveProblem("e_shiny_selfies.txt");
+        default:
+            break;
+        }
+    }
 
     return 0;
 }
