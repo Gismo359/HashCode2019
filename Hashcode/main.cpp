@@ -10,509 +10,845 @@
 #include <filesystem>
 #include <iterator>
 #include <execution>
+#include <random>
 
 #include <ctime>
 
 template <typename Type>
 struct Vector : std::vector<Type>
 {
-    using std::vector<Type>::vector;
+	using std::vector<Type>::vector;
 
-    int size() const
-    {
-        return std::vector<Type>::size();
-    }
+	long long size() const
+	{
+		return (long long)std::vector<Type>::size();
+	}
 };
 
 template <typename FirstType, typename SecondType>
 using Pair = std::pair<FirstType, SecondType>;
 
 using IntSet = std::unordered_set<int>;
+using LongLongSet = std::unordered_set<long long>;
 using TagSet = std::unordered_set<std::string>;
 
 template <typename Type>
 struct Array2d
 {
-    int width;
-    int height;
+	int width;
+	int height;
 
-    Vector<Type> data;
+	Vector<Type> data;
 
-    struct Row
-    {
-        Type *begin;
-        Type *end;
+	struct Row
+	{
+		Type *from;
+		Type *to;
 
-        Row(Type *begin, Type *end) :
-            begin(begin),
-            end(end)
-        {
+		Row() = default;
+		Row(Type *begin, Type *end) :
+			from(begin),
+			to(end)
+		{
+			if (end < begin)
+			{
+				throw std::runtime_error("End if before begin");
+			}
+		}
 
-        }
+		Type &operator [](int idx)
+		{
+			Type *it = from + idx;
+			if (it < from || it >= to)
+			{
+				throw std::runtime_error("Column index " + std::to_string(idx) + " out of range");
+			}
+			return *it;
+		}
 
-        Type &operator [](int idx)
-        {
-            Type *it = begin + idx;
-            if (it < begin | it > end)
-            {
-                throw std::runtime_error("Column index " + std::to_string(idx) + " out of range");
-            }
-            return *it;
-        }
-    };
+		Type const &operator [](int idx) const
+		{
+			Type *it = from + idx;
+			if (it < from || it >= to)
+			{
+				throw std::runtime_error("Column index " + std::to_string(idx) + " out of range");
+			}
+			return *it;
+		}
 
-    struct Iterator //: std::iterator<std::bidirectional_iterator_tag, Row>
-    {
-        using iterator_category = std::bidirectional_iterator_tag;
-        using difference_type = int;
-        using value_type = int;
-        using pointer = value_type * ;
-        using reference = value_type & ;
+		Type *begin()
+		{
+			return from;
+		}
 
-        Array2d<Type> *container;
-        int idx;
+		Type const *begin() const
+		{
+			return from;
+		}
 
-        Iterator() = default;
-        Iterator(Array2d<Type> *container, int idx) :
-            container(container),
-            idx(idx)
-        {
+		Type *end()
+		{
+			return to;
+		}
 
-        }
+		Type const *end() const
+		{
+			return to;
+		}
+	};
 
-        Row operator *()
-        {
-            return (*container)[idx];
-        }
+	struct Iterator //: std::iterator<std::bidirectional_iterator_tag, Row>
+	{
+		using iterator_category = std::bidirectional_iterator_tag;
+		using difference_type = long long;
+		using value_type = int;
+		using pointer = value_type * ;
+		using reference = value_type & ;
 
-        Iterator &operator++()
-        {
-            idx++;
-            return *this;
-        }
+		Array2d<Type> *container;
+		int idx;
 
-        Iterator &operator--()
-        {
-            idx--;
-            return *this;
-        }
+		Iterator() = default;
+		Iterator(Array2d<Type> *container, long long idx) :
+			container(container),
+			idx(idx)
+		{
 
-        bool operator != (Iterator const &other)
-        {
-            return idx != other.idx;
-        }
-    };
+		}
 
-    Array2d(int width, int height) :
-        width(width),
-        height(height)
-    {
-        data.resize(width * height);
-    }
+		Row operator *() const
+		{
+			return (*container)[idx];
+		}
 
-    Row operator [](int idx)
-    {
-        if (idx < 0 || idx >= height)
-        {
-            throw std::runtime_error("Row index " + std::to_string(idx) + " out of range");
-        }
-        return Row(
-            data.data() + idx * width,
-            data.data() + idx * width + width
-        );
-    }
+		Iterator &operator++()
+		{
+			idx++;
+			return *this;
+		}
 
-    Iterator begin()
-    {
-        return Iterator(this, 0);
-    }
+		Iterator &operator--()
+		{
+			idx--;
+			return *this;
+		}
 
-    Iterator end()
-    {
-        return Iterator(this, height);
-    }
+		bool operator != (Iterator const &other)
+		{
+			return idx != other.idx;
+		}
+	};
+
+	Array2d(int width, int height)
+	{
+		resize(width, height);
+	}
+
+	void resize(int new_width, int new_height)
+	{
+		width = new_width;
+		height = new_height;
+		data.resize(new_width * (long long)new_height, Type{});
+	}
+
+	Row operator [](int idx)
+	{
+		if (idx < 0 || idx >= height)
+		{
+			throw std::runtime_error("Row index " + std::to_string(idx) + " out of range");
+		}
+		return Row(
+			data.data() + idx * (long long)width,
+			data.data() + (idx + 1) * (long long)width
+		);
+	}
+
+	void clear()
+	{
+		data.clear();
+	}
+
+	Iterator begin()
+	{
+		return Iterator(this, 0);
+	}
+
+	Iterator end()
+	{
+		return Iterator(this, height);
+	}
 };
 
 struct Photo
 {
-    IntSet tags;
-    int idx;
-    bool is_vertical;
+	LongLongSet tags;
+	int idx;
+	bool is_vertical;
 
-    Photo() = default;
-    Photo(TagSet string_tags, int idx, bool is_vertical) :
-        idx(idx),
-        is_vertical(is_vertical)
-    {
-        for (std::string const &tag : string_tags)
-        {
-            tags.insert(std::hash_value(tag));
-        }
-    }
+	Photo() = default;
+	Photo(TagSet string_tags, int idx, bool is_vertical) :
+		idx(idx),
+		is_vertical(is_vertical)
+	{
+		for (std::string const &tag : string_tags)
+		{
+			tags.insert((long long)std::hash_value(tag));
+		}
+	}
 
-    std::string to_string() const
-    {
-        std::ostringstream oss;
-        if (is_vertical)
-        {
-            oss << 'V';
-        }
-        else
-        {
-            oss << 'H';
-        }
+	std::string to_string() const
+	{
+		std::ostringstream oss;
+		if (is_vertical)
+		{
+			oss << 'V';
+		}
+		else
+		{
+			oss << 'H';
+		}
 
-        oss << ' ' << tags.size();
-        for (int tag : tags)
-        {
-            oss << ' ' << std::to_string(tag);
-        }
+		oss << ' ' << tags.size();
+		for (long long tag : tags)
+		{
+			oss << ' ' << std::to_string(tag);
+		}
 
-        return oss.str();
-    }
+		return oss.str();
+	}
 };
 
 using PhotoArray = Vector<Photo>;
 
 struct Slide
 {
-    PhotoArray photos;
-    IntSet tags;
+	PhotoArray photos;
+	LongLongSet tags;
 
-    Slide() = default;
-    Slide(PhotoArray photos) :
-        photos(std::move(photos))
-    {
-        for (Photo const &photo : this->photos)
-        {
-            tags.insert(
-                std::begin(photo.tags),
-                std::end(photo.tags)
-            );
-        }
-    }
+	Slide() = default;
+	Slide(PhotoArray photos) :
+		photos(std::move(photos))
+	{
+		for (Photo const &photo : this->photos)
+		{
+			tags.insert(
+				std::begin(photo.tags),
+				std::end(photo.tags)
+			);
+		}
+	}
 };
 
 using SlideArray = Vector<Slide>;
 using IntArray = Vector<int>;
+using DoubleArray = Vector<double>;
 
-void CombineVerticals(SlideArray &slides, PhotoArray &verticals)
+int CommonTagCount(Photo const &lhs, Photo const &rhs)
 {
-    std::sort(
-        std::begin(verticals),
-        std::end(verticals),
-        [](Photo const &lhs, Photo const &rhs)
-    {
-        return lhs.tags.size() < rhs.tags.size();
-    }
-    );
-    for (int photo_idx = 0; photo_idx < verticals.size() - 1; photo_idx += 2)
-    {
-        slides.emplace_back(PhotoArray{ verticals[photo_idx], verticals[verticals.size() - photo_idx - 1] });
-    }
+	int count = 0;
+	for (int tag : lhs.tags)
+	{
+		if (rhs.tags.count(tag))
+		{
+			count++;
+		}
+	}
+	return count;
+}
+
+Array2d<int> order(1000, 1000);
+Array2d<int> scores(1000, 1000);
+
+void CombineVerticals(SlideArray &slides, PhotoArray &photos)
+{
+	std::shuffle(
+		std::begin(photos),
+		std::end(photos),
+		std::default_random_engine()
+	);
+
+	order.resize(photos.size() - 1, photos.size());
+	scores.resize(photos.size(), photos.size());
+
+	IntArray score_sums;
+	score_sums.resize(photos.size());
+
+	DoubleArray score_averages;
+	score_averages.resize(photos.size());
+
+	IntSet used_photos;
+
+	std::cout << "Precalculating vertical photo scores" << std::endl;
+	std::for_each(
+		std::execution::par_unseq,
+		std::begin(order),
+		std::end(order),
+		[&](Array2d<int>::Row row)
+	{
+		int row_idx = (int)(std::abs(order.data.data() - row.from) / order.width);
+
+		Photo const &photo = photos[row_idx];
+
+		int column_idx = (int)photos.size() - 1;
+		while (column_idx--)
+		{
+			order[row_idx][column_idx] = column_idx;
+			if (column_idx >= row_idx)
+			{
+				order[row_idx][column_idx] += 1;
+			}
+		}
+
+		int photo_idx = (int)photos.size();
+		while (photo_idx--)
+		{
+			int score = CommonTagCount(photo, photos[photo_idx]);
+
+			scores[row_idx][photo_idx] = score;
+		}
+		scores[row_idx][row_idx] = 0;
+
+		score_sums[row_idx] = std::accumulate(
+			std::begin(scores[row_idx]),
+			std::end(scores[row_idx]),
+			0
+		);
+
+		score_averages[row_idx] = score_sums[row_idx] / (double)order.width;
+
+		std::sort(row.from, row.to, [row_idx, &score_averages](int lhs, int rhs)
+		{
+			double dlhs = std::abs(scores[row_idx][lhs]);
+			double drhs = std::abs(scores[row_idx][rhs]);
+			return dlhs > drhs;
+		});
+
+		//for (int idx = 0; idx < order.width; idx += 2)
+		//{
+		//	std::swap(row[idx], row[order.width - idx - 1]);
+		//}
+	});
+
+	std::cout << "Combining " << photos.size() << " vertical photos" << std::endl;
+	for (int first_idx = 0; first_idx < order.height; first_idx++)
+	{
+		if (used_photos.count(first_idx))
+		{
+			continue;
+		}
+
+		int second_idx = -1;
+
+		for (int column_idx = 0; column_idx < order.width; column_idx++)
+		{
+			int photo_idx = order[first_idx][column_idx];
+			if (first_idx == photo_idx)
+			{
+				continue;
+			}
+
+			if (used_photos.count(photo_idx))
+			{
+				continue;
+			}
+
+			second_idx = photo_idx;
+		}
+
+		if (second_idx != -1)
+		{
+			slides.emplace_back(PhotoArray{ photos[first_idx], photos[second_idx] });
+
+			used_photos.insert(first_idx);
+			used_photos.insert(second_idx);
+		}
+	}
 }
 
 int Score(Slide const &lhs, Slide const &rhs)
 {
-    int intersection = 0;
-    int diff1 = 0;
-    int diff2 = 0;
+	int intersection = 0;
+	int diff1 = 0;
+	int diff2 = 0;
 
-    for (int tag : lhs.tags)
-    {
-        if (rhs.tags.count(tag))
-        {
-            intersection++;
-        }
-        else
-        {
-            diff1++;
-        }
-    }
+	for (long long tag : lhs.tags)
+	{
+		if (rhs.tags.count(tag))
+		{
+			intersection++;
+		}
+		else
+		{
+			diff1++;
+		}
+	}
 
-    for (int tag : rhs.tags)
-    {
-        if (!lhs.tags.count(tag))
-        {
-            diff2++;
-        }
-    }
+	for (long long tag : rhs.tags)
+	{
+		if (!lhs.tags.count(tag))
+		{
+			diff2++;
+		}
+	}
 
-    return std::min<int>(
-        {
-            intersection,
-            diff1,
-            diff2
-        }
-    );
+	return std::min(
+		{
+			intersection,
+			diff1,
+			diff2
+		}
+	);
 }
 
 int Score(SlideArray const &slides)
 {
-    int sum = 0;
-    for (int idx = 0; idx < slides.size() - 1; idx++)
-    {
-        sum += Score(
-            slides[idx],
-            slides[idx + 1]
-        );
-    }
-    return sum;
+	int sum = 0;
+	for (int idx = 0; idx < slides.size() - 1; idx++)
+	{
+		sum += Score(
+			slides[idx],
+			slides[idx + 1]
+		);
+	}
+	return sum;
 }
 
-SlideArray SortSlides(SlideArray const &slides)
+int Score(SlideArray const &slides, Array2d<int>::Row row)
 {
-    IntArray output_indices;
-    output_indices.reserve(slides.size());
-
-    std::srand(std::time(0));
-
-    int first_idx = std::rand() % slides.size();
-    output_indices.push_back(first_idx);
-
-    IntSet indices;
-    for (int idx = 0; idx < slides.size(); idx++)
-    {
-        if (first_idx != idx)
-        {
-            indices.insert(idx);
-        }
-    }
-
-    while (output_indices.size() < slides.size())
-    {
-        int best_score = -1;
-        int best_idx = -1;
-
-        for (int idx : indices)
-        {
-            int s = Score(
-                slides[output_indices.back()],
-                slides[idx]
-            );
-
-            if (best_idx == -1 || s > best_score)
-            {
-                best_score = s;
-                best_idx = idx;
-            }
-        }
-
-        if (indices.count(best_idx))
-        {
-            indices.erase(best_idx);
-            output_indices.push_back(best_idx);
-        }
-
-        if (output_indices.size() > 2)
-        {
-            while (Score(
-                slides[output_indices[output_indices.size() - 2]],
-                slides[output_indices[output_indices.size() - 1]]
-            ) < Score(
-                slides[output_indices[output_indices.size() - 1]],
-                slides[output_indices[0]]
-            ))
-            {
-                output_indices.insert(
-                    std::begin(output_indices),
-                    output_indices[output_indices.size() - 1]
-                );
-                output_indices.pop_back();
-            }
-        }
-    }
-
-    SlideArray output;
-    output.reserve(slides.size());
-
-    for (int idx : output_indices)
-    {
-        output.push_back(slides[idx]);
-    }
-
-    return output;
+	int sum = 0;
+	for (int idx = 0; idx < slides.size() - 1; idx++)
+	{
+		sum += Score(
+			slides[row[idx]],
+			slides[row[idx + 1]]
+		);
+	}
+	return sum;
 }
 
-void SolveProblem(std::filesystem::path filename, int nthreads = 1)
+void FindBest(
+	Array2d<int> &order,
+	Array2d<int> &scores,
+	IntSet const &potential_indices,
+	int first_idx,
+	int skip,
+	int depth,
+	int max_depth,
+	int total_score,
+	IntArray &indices,
+	int &best_score,
+	Array2d<int>::Row best_combination
+)
 {
-    PhotoArray photos;
+	int count = 0;
+	bool wraparound = false;
+	for (int column_idx = skip; count != 3 && count != potential_indices.size(); column_idx++)
+	{
+		if (column_idx >= order.width)
+		{
+			column_idx -= order.width;
+			wraparound = true;
+		}
 
-    std::fstream file(filename);
+		if (wraparound && skip == column_idx)
+		{
+			break;
+		}
 
-    int photo_count;
-    file >> photo_count;
+		int slide_idx = order[first_idx][column_idx];
 
-    for (int slide_idx = 0; slide_idx < photo_count; slide_idx++)
-    {
-        std::string v;
-        file >> v;
+		auto begin = std::begin(indices);
+		auto end = std::next(std::begin(indices), depth);
 
-        int tag_count;
-        file >> tag_count;
+		int score = scores[first_idx][slide_idx];
 
-        TagSet set;
-        while (tag_count--)
-        {
-            std::string tag;
-            file >> tag;
-            set.insert(tag);
-        }
+		bool not_used = std::find(begin, end, slide_idx) == end;
+		if (potential_indices.count(slide_idx) && (not_used || potential_indices.size() == 1))
+		{
+			indices[depth] = slide_idx;
+			count++;
 
-        photos.emplace_back(set, slide_idx, v == "V");
-    }
+			if (depth < max_depth)
+			{
+				FindBest(
+					order,
+					scores,
+					potential_indices,
+					indices[depth],
+					skip,
+					depth + 1,
+					max_depth,
+					total_score + score,
+					indices,
+					best_score,
+					best_combination
+				);
+			}
+			else if (score + total_score > best_score)
+			{
+				best_score = score + total_score;
 
-    PhotoArray verticals;
-    SlideArray slides;
+				std::copy(
+					begin,
+					end,
+					std::begin(best_combination)
+				);
+			}
+		}
+	}
+}
 
-    for (Photo const &photo : photos)
-    {
-        if (photo.is_vertical)
-        {
-            verticals.push_back(photo);
-        }
-        else
-        {
-            slides.emplace_back(PhotoArray{ photo });
-        }
-    }
+void FindBestCombination(
+	Array2d<int> &order,
+	Array2d<int> &scores,
+	IntSet const &potential_indices,
+	int first_idx,
+	int depth,
+	int max_depth,
+	int &best_score,
+	Vector<int> &best_indices
+)
+{
+	Vector<int> candidates;
+	candidates.reserve(max_depth);
 
-    CombineVerticals(slides, verticals);
+	for (int column_idx = 0; column_idx < order.width && candidates.size() < depth; column_idx++)
+	{
+		int slide_idx = order[first_idx][column_idx];
+		if (potential_indices.count(slide_idx))
+		{
+			candidates.push_back(slide_idx);
+		}
+	}
 
-    std::sort(
-        std::begin(slides),
-        std::end(slides),
-        [](Slide const &lhs, Slide const &rhs)
-    {
-        return lhs.tags.size() < rhs.tags.size();
-    }
-    );
+	for (int start_idx : candidates)
+	{
+		Vector<int> next_n;
+		next_n.reserve(max_depth);
 
-    //Array2d<int> order(slides.size() - 1, slides.size());
-    //Array2d<int> scores(slides.size(), slides.size());
-    //std::for_each(
-    //    std::execution::par_unseq,
-    //    std::begin(order),
-    //    std::end(order),
-    //    [&](Array2d<int>::Row row)
-    //{
-    //    int row_idx = std::distance(order.data.data(), row.begin) / order.width;
+		next_n.push_back(start_idx);
 
-    //    int *it = row.begin;
+		int score = scores[first_idx][start_idx];
 
-    //    Slide const &slide = slides[row_idx];
+		int last_idx = start_idx;
+		while (next_n.size() < depth - 1)
+		{
+			for (int column_idx = 0; column_idx < order.width; column_idx++)
+			{
+				int slide_idx = order[last_idx][column_idx];
+				if (potential_indices.count(slide_idx) && std::find(std::begin(next_n), std::end(next_n), slide_idx) == std::end(next_n))
+				{
+					next_n.push_back(slide_idx);
+					score += scores[last_idx][slide_idx];
+					last_idx = slide_idx;
+					break;
+				}
+			}
+		}
 
-    //    int slide_idx = slides.size();
-    //    while (slide_idx--)
-    //    {
-    //        if (slide_idx != row_idx)
-    //        {
-    //            *it++ = slide_idx;
-    //            scores[row_idx][slide_idx] = Score(slide, slides[slide_idx]);
-    //        }
-    //        else
-    //        {
-    //            scores[row_idx][slide_idx] = 0;
-    //        }
-    //    }
+		if (best_score == -1 || best_score < score)
+		{
+			best_score = score;
+			best_indices = next_n;
+		}
+	}
+}
 
-    //    std::sort(row.begin, row.end, [row_idx, &scores](int lhs, int rhs)
-    //    {
-    //        return scores[row_idx][lhs] < scores[row_idx][lhs];
-    //    });
-    //});
+std::random_device rd;std::mt19937 engine(rd());
 
-    Vector<Pair<int, SlideArray>> splits;
+void SortSlides(SlideArray const &slides, Array2d<int> &scores, Array2d<int> &order, Array2d<int>::Row dest)
+{
+	int first_idx = std::uniform_int_distribution<int>(0, slides.size())(engine);
+	int last_idx = first_idx;
 
-    int step = slides.size() / nthreads;
-    for (int idx = 0; idx < nthreads; idx++)
-    {
-        int start = step * idx;
-        int end = step * (idx + 1);
-        if (idx == nthreads - 1)
-        {
-            end = slides.size();
-        }
-        splits.emplace_back(
-            idx,
-            SlideArray(
-                std::next(std::begin(slides), start),
-                std::next(std::begin(slides), end)
-            )
-        );
-    }
+	IntSet potential_indices;
+	for (int idx = 0; idx < slides.size(); idx++)
+	{
+		if (last_idx != idx)
+		{
+			potential_indices.insert(idx);
+		}
+	}
 
-    std::for_each(
-        std::execution::par_unseq,
-        std::begin(splits),
-        std::end(splits),
-        [step, &slides](Pair<int, SlideArray> const &pair)
-    {
-        SlideArray sorted_slides = SortSlides(pair.second);
-        std::copy(
-            std::begin(sorted_slides),
-            std::end(sorted_slides),
-            std::next(
-                std::begin(slides),
-                step * pair.first
-            )
-        );
-    }
-    );
+	//int skip = 0;
+	int max_depth = 1;
+	//int last_size = 0;
 
-    int score = Score(slides);
-    std::cout << score << std::endl;
+	Array2d<int> best_matrix(max_depth + 1, potential_indices.size());
+	IntArray best_vector;
 
-    std::filesystem::path dir = filename.stem();
-    create_directories(dir);
+	int *it = dest.from;
+	*it++ = last_idx;
+	while (it != dest.to)
+	{
+		int best_back_idx = -1;
+		int best_back_score = -1;
+		for (int column_idx = 0; column_idx < order.width; column_idx++)
+		{
+			int slide_idx = order[last_idx][column_idx];
+			if (potential_indices.count(slide_idx))
+			{
+				best_back_idx = slide_idx;
+				best_back_score = scores[last_idx][slide_idx];
+				break;
+			}
+		}
 
-    std::ofstream outfile(dir / (std::to_string(score) + ".txt"));
+		int best_front_idx = -1;
+		int best_front_score = -1;
+		for (int column_idx = 0; column_idx < order.width; column_idx++)
+		{
+			int slide_idx = order[first_idx][column_idx];
+			if (potential_indices.count(slide_idx))
+			{
+				best_front_idx = slide_idx;
+				best_front_score = scores[first_idx][slide_idx];
+				break;
+			}
+		}
 
-    outfile << slides.size() << std::endl;
-    for (Slide const &slide : slides)
-    {
-        for (Photo const &photo : slide.photos)
-        {
-            outfile << photo.idx << ' ';
-        }
-        outfile << std::endl;
-    }
+		if (best_back_score > best_front_score)
+		{
+			if (potential_indices.count(best_back_idx))
+			{
+				potential_indices.erase(best_back_idx);
+				*it++ = best_back_idx;
+				last_idx = best_back_idx;
+			}
+		}
+		else
+		{
+			if (potential_indices.count(best_front_idx))
+			{
+				potential_indices.erase(best_front_idx);
+				std::copy(dest.from, it, dest.from + 1);
+				it++;
+				dest[0] = best_front_idx;
+				first_idx = best_front_idx;
+			}
+		}
+
+		//if (std::abs(it - dest.from) > 2)
+		//{
+		//	int second_last_idx = *(it - 2);
+		//	while (scores[second_last_idx][last_idx] < scores[last_idx][first_idx])
+		//	{
+		//		std::copy(dest.from, it - 1, dest.from + 1);
+		//		dest[0] = last_idx;
+		//		first_idx = last_idx;
+		//		last_idx = second_last_idx;
+		//	}
+		//}
+	}
+}
+
+void SolveProblem(std::filesystem::path filename, int ntimes = 1)
+{
+	std::fstream file(filename);
+
+	file.seekg(0, file.end);
+	size_t file_size = file.tellg();
+	file.seekg(0, file.beg);
+
+	std::string input;
+	input.resize(file_size);
+
+	file.read(&input[0], file_size);
+
+	std::istringstream iss(input);
+
+	int photo_count;
+	iss >> photo_count;
+
+	PhotoArray verticals;
+	verticals.reserve(photo_count / 2);
+
+	SlideArray slides;
+	slides.reserve(photo_count / 2);
+
+	for (int photo_idx = 0; photo_idx < photo_count; photo_idx++)
+	{
+		std::string v;
+		iss >> v;
+
+		int tag_count;
+		iss >> tag_count;
+
+		TagSet set;
+		while (tag_count--)
+		{
+			std::string tag;
+			iss >> tag;
+			set.insert(tag);
+		}
+
+		Photo photo(set, photo_idx, v == "V");
+
+		if (photo.is_vertical)
+		{
+			verticals.push_back(photo);
+		}
+		else
+		{
+			slides.emplace_back(PhotoArray{ photo });
+		}
+	}
+
+	CombineVerticals(slides, verticals);
+
+	std::sort(
+		std::begin(slides),
+		std::end(slides),
+		[](Slide const &lhs, Slide const &rhs)
+	{
+		return lhs.tags.size() < rhs.tags.size();
+	}
+	);
+
+	order.resize(slides.size() - 1, slides.size());
+	scores.resize(slides.size(), slides.size());
+
+	std::cout << "Precalculating slide scores" << std::endl;
+
+	std::for_each(
+		std::execution::par_unseq,
+		std::begin(order),
+		std::end(order),
+		[&](Array2d<int>::Row row)
+	{
+		int row_idx = (int)(std::abs(order.data.data() - row.from) / order.width);
+
+		Slide const &slide = slides[row_idx];
+
+		int column_idx = (int)slides.size() - 1;
+		while (column_idx--)
+		{
+			order[row_idx][column_idx] = column_idx;
+			if (column_idx >= row_idx)
+			{
+				order[row_idx][column_idx] += 1;
+			}
+		}
+
+		int slide_idx = (int)slides.size();
+		while (slide_idx--)
+		{
+			int score = Score(slide, slides[slide_idx]);
+
+			scores[row_idx][slide_idx] = score;
+		}
+		scores[row_idx][row_idx] = 0;
+
+		int score_sum = std::accumulate(
+			std::begin(scores[row_idx]),
+			std::end(scores[row_idx]),
+			0
+		);
+
+		int score_max = *std::max_element(
+			std::begin(scores[row_idx]),
+			std::end(scores[row_idx])
+		);
+
+		double score_average = score_sum / (double)order.width;
+
+		std::sort(
+			std::begin(row),
+			std::end(row),
+			[row_idx, score_average](int lhs, int rhs)
+		{
+			double dlhs = std::abs(scores[row_idx][lhs]);
+			double drhs = std::abs(scores[row_idx][rhs]);
+			return dlhs > drhs;
+		});
+
+		//std::shuffle(
+		//	std::begin(row),
+		//	std::end(row),
+		//	std::default_random_engine()
+		//);
+
+		//for (int idx = 0; idx < order.width; idx += 2)
+		//{
+		//	std::swap(row[idx], row[order.width - idx - 1]);
+		//}
+	});
+
+	std::cout << "Sorting " << slides.size() << " slides" << std::endl;
+
+	Array2d<int> outputs(slides.size(), ntimes);
+	IntArray output_scores(ntimes);
+	std::for_each(
+		std::execution::par_unseq,
+		std::begin(outputs),
+		std::end(outputs),
+		[&](Array2d<int>::Row row)
+	{
+		int row_idx = (int)(std::abs(outputs.data.data() - row.from) / outputs.width);
+		SortSlides(slides, scores, order, row);
+		output_scores[row_idx] = Score(slides, row);
+	});
+
+	for (int idx = 0; idx < ntimes; idx++)
+	{
+		Array2d<int>::Row row = outputs[idx];
+		int score = output_scores[idx];
+
+		std::cout << score << std::endl;
+
+		std::filesystem::path dir = filename.stem();
+		create_directories(dir);
+
+		std::ofstream outfile(dir / (std::to_string(score) + ".txt"));
+
+		outfile << slides.size() << std::endl;
+		for (int slide_idx : row)
+		{
+			for (Photo const &photo : slides[slide_idx].photos)
+			{
+				outfile << photo.idx << ' ';
+			}
+			outfile << std::endl;
+		}
+	}
 }
 
 int main(int argc, char *argv[])
+try
 {
-    //SolveProblem("b_lovely_landscapes.txt", 1);
-    //SolveProblem("e_shiny_selfies.txt", 1);
-    //SolveProblem("d_pet_pictures.txt", 1);
-    //SolveProblem("c_memorable_moments.txt", 1);
+	std::srand((unsigned)std::time(0));
+	for (int idx = 1; idx < argc; idx++)
+	{
+		switch (argv[idx][0])
+		{
+		case 'a':
+		case 'A':
+			SolveProblem("a_example.txt", 100);
+			break;
+		case 'b':
+		case 'B':
+			SolveProblem("b_lovely_landscapes.txt", 100);
+			break;
+		case 'c':
+		case 'C':
+			SolveProblem("c_memorable_moments.txt", 100);
+			break;
+		case 'd':
+		case 'D':
+			SolveProblem("d_pet_pictures.txt", 100);
+			break;
+		case 'e':
+		case 'E':
+			SolveProblem("e_shiny_selfies.txt", 100);
+		default:
+			break;
+		}
+	}
 
-    for (int idx = 1; idx < argc; idx++)
-    {
-        switch (argv[idx][0])
-        {
-        case 'a':
-        case 'A':
-            SolveProblem("a_example.txt");
-            break;
-        case 'b':
-        case 'B':
-            SolveProblem("b_lovely_landscapes.txt");
-            break;
-        case 'c':
-        case 'C':
-            SolveProblem("c_memorable_moments.txt");
-            break;
-        case 'd':
-        case 'D':
-            SolveProblem("d_pet_pictures.txt");
-            break;
-        case 'e':
-        case 'E':
-            SolveProblem("e_shiny_selfies.txt");
-        default:
-            break;
-        }
-    }
-
-    return 0;
+	return 0;
+}
+catch (std::exception const &e)
+{
+	std::cout << e.what() << std::endl;
+	return 1;
 }

@@ -7,16 +7,22 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Hashcode", "Hashcode\Hashco
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
+		Debug - Clang|x64 = Debug - Clang|x64
+		Debug - Clang|x86 = Debug - Clang|x86
+		Debug - MSVC|x64 = Debug - MSVC|x64
+		Debug - MSVC|x86 = Debug - MSVC|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug|x64.ActiveCfg = Debug|x64
-		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug|x64.Build.0 = Debug|x64
-		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug|x86.ActiveCfg = Debug|Win32
-		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug|x86.Build.0 = Debug|Win32
+		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug - Clang|x64.ActiveCfg = Debug - Clang|x64
+		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug - Clang|x64.Build.0 = Debug - Clang|x64
+		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug - Clang|x86.ActiveCfg = Debug - Clang|Win32
+		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug - Clang|x86.Build.0 = Debug - Clang|Win32
+		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug - MSVC|x64.ActiveCfg = Debug - MSVC|x64
+		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug - MSVC|x64.Build.0 = Debug - MSVC|x64
+		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug - MSVC|x86.ActiveCfg = Debug - MSVC|Win32
+		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Debug - MSVC|x86.Build.0 = Debug - MSVC|Win32
 		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Release|x64.ActiveCfg = Release|x64
 		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Release|x64.Build.0 = Release|x64
 		{1E744B7F-0B33-4E2C-9A9A-EB9B1F9232F3}.Release|x86.ActiveCfg = Release|Win32
