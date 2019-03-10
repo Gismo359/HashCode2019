@@ -1,0 +1,1 @@
+Solution for the 2019 HashCode challenge with score 1,051,768
